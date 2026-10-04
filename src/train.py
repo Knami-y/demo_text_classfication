@@ -1,17 +1,23 @@
 
-from idlelib.iomenu import encoding
 from pathlib import Path
 import torch
-from scipy.sparse import data
 from torch import optim
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoConfig
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-BASE_DIR = Path(__file__).parent
-TRAIN_PATH = BASE_DIR / "train_3k.txt"
-TEST_PATH = BASE_DIR / "test_1k.txt"
-DEV_PATH = BASE_DIR / "dev_1k.txt"
+BASE_DIR = Path(__file__).resolve().parents[1]  # src/ 的上一级 = 项目根目录
+DATA_DIR = BASE_DIR / "data"
+CKPT_DIR = BASE_DIR / "checkpoints"
+RUNS_DIR = BASE_DIR / "runs"
+
+# 全新克隆的仓库里这两个目录可能不存在，先确保可写
+CKPT_DIR.mkdir(parents=True, exist_ok=True)
+RUNS_DIR.mkdir(parents=True, exist_ok=True)
+
+TRAIN_PATH = DATA_DIR / "train_3k.txt"
+DEV_PATH = DATA_DIR / "dev_1k.txt"
+TEST_PATH = DATA_DIR / "test_1k.txt"
 
 BATCH_SIZE = 16
 MODEL_PATH = "bert-base-chinese"
@@ -121,24 +127,11 @@ print(batch["attention_mask"].shape)
 print(batch["labels"].shape)
 
 #5.bert-base-chinese模型训练
-config = AutoConfig.from_pretrained(
-    MODEL_PATH,
-    local_files_only=True,
-)
-config.num_labels = len(label2id)
-config.hidden_dropout_prob = 0.03
-config.classifier_dropout = 0.1
 model = AutoModelForSequenceClassification.from_pretrained(
     MODEL_PATH,
-    config=config,
+    num_labels=len(label2id),
     local_files_only=True,
 )
-
-print("hidden dropout:", model.config.hidden_dropout_prob)
-print("attention dropout:", model.config.attention_probs_dropout_prob)
-print("classifier dropout:", model.config.classifier_dropout)
-print("实际分类头 dropout:", model.dropout.p)
-
 if torch.backends.mps.is_available():
     device = torch.device("mps")
 else:
@@ -175,7 +168,7 @@ if __name__ == "__main__":
     Epochs = 3
     best_dev_acc = 0
     best_epoch = 0
-    writer = SummaryWriter("./runs/model_0.03dropout")
+    writer = SummaryWriter(str(RUNS_DIR / "bert_text_classification"))
     for epoch in range(Epochs):
         print("epoch:", epoch + 1)
         model.train()#切换模型为训练模式
@@ -239,7 +232,7 @@ if __name__ == "__main__":
             torch.save({"epoch":best_epoch,
                         "model":model.state_dict(),
                         "optimizer":opt.state_dict(),
-                        "dev_acc":dev_acc},"model_0.03dropout.pth")
+                        "dev_acc":dev_acc}, CKPT_DIR / "best_model.pth")
             print(f"保存最优模型： Epoch {best_epoch}, Best dev acc: {best_dev_acc:.4f}")
 
         print(
@@ -250,3 +243,8 @@ if __name__ == "__main__":
         )
 
     writer.close()
+
+
+
+
+

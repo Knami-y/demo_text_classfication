@@ -1,17 +1,23 @@
 
-from idlelib.iomenu import encoding
 from pathlib import Path
 import torch
-from scipy.sparse import data
 from torch import optim
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoConfig
 
-BASE_DIR = Path(__file__).parent
-TRAIN_PATH = BASE_DIR / "train_3k.txt"
-TEST_PATH = BASE_DIR / "test_1k.txt"
-DEV_PATH = BASE_DIR / "dev_1k.txt"
+BASE_DIR = Path(__file__).resolve().parents[2]  # src/experiments/ 的上两级 = 项目根目录
+DATA_DIR = BASE_DIR / "data"
+CKPT_DIR = BASE_DIR / "checkpoints"
+RUNS_DIR = BASE_DIR / "runs"
+
+# 全新克隆的仓库里这两个目录可能不存在，先确保可写
+CKPT_DIR.mkdir(parents=True, exist_ok=True)
+RUNS_DIR.mkdir(parents=True, exist_ok=True)
+
+TRAIN_PATH = DATA_DIR / "train_3k.txt"
+DEV_PATH = DATA_DIR / "dev_1k.txt"
+TEST_PATH = DATA_DIR / "test_1k.txt"
 
 BATCH_SIZE = 16
 MODEL_PATH = "bert-base-chinese"
@@ -121,11 +127,24 @@ print(batch["attention_mask"].shape)
 print(batch["labels"].shape)
 
 #5.bert-base-chinese模型训练
-model = AutoModelForSequenceClassification.from_pretrained(
+config = AutoConfig.from_pretrained(
     MODEL_PATH,
-    num_labels=len(label2id),
     local_files_only=True,
 )
+config.num_labels = len(label2id)
+config.hidden_dropout_prob = 0.3
+config.classifier_dropout = 0.1
+model = AutoModelForSequenceClassification.from_pretrained(
+    MODEL_PATH,
+    config=config,
+    local_files_only=True,
+)
+
+print("hidden dropout:", model.config.hidden_dropout_prob)
+print("attention dropout:", model.config.attention_probs_dropout_prob)
+print("classifier dropout:", model.config.classifier_dropout)
+print("实际分类头 dropout:", model.dropout.p)
+
 if torch.backends.mps.is_available():
     device = torch.device("mps")
 else:
@@ -155,14 +174,14 @@ batch = next(iter(train_loader))
 loss_fn = torch.nn.CrossEntropyLoss()
 
 #7.创建优化器optimizer
-opt = torch.optim.AdamW(model.parameters(),lr = 1e-5)
+opt = torch.optim.AdamW(model.parameters(),lr = 2e-5)
 
 #8.开始训练过程
 if __name__ == "__main__":
     Epochs = 3
     best_dev_acc = 0
     best_epoch = 0
-    writer = SummaryWriter("./runs/model_lr1e-5")
+    writer = SummaryWriter(str(RUNS_DIR / "model_0.3dropout"))
     for epoch in range(Epochs):
         print("epoch:", epoch + 1)
         model.train()#切换模型为训练模式
@@ -178,7 +197,7 @@ if __name__ == "__main__":
             opt.zero_grad()
             # 前向传播
             outputs = model(input_ids = input_ids,attention_mask = attention_mask)
-            logits = outputs.logits#logits是模型对每个类别预测的原始分数tensor
+            logits = outputs.logits#logits是模型对各类分别输出的原始分数
             # 计算每个损失
             loss = loss_fn(logits,labels)
             # 反向传播
@@ -226,7 +245,7 @@ if __name__ == "__main__":
             torch.save({"epoch":best_epoch,
                         "model":model.state_dict(),
                         "optimizer":opt.state_dict(),
-                        "dev_acc":dev_acc},"best_model_1e-5.pth")
+                        "dev_acc":dev_acc}, CKPT_DIR / "model_0.3dropout.pth")
             print(f"保存最优模型： Epoch {best_epoch}, Best dev acc: {best_dev_acc:.4f}")
 
         print(
@@ -236,11 +255,4 @@ if __name__ == "__main__":
             f"Dev acc: {dev_acc * 100: .2f} "
         )
 
-writer.close()
-
-
-
-
-
-
-
+    writer.close()

@@ -1,0 +1,10 @@
+# Demo 1：基于 bert-base-chinese 的中文新闻文本分类
+#
+# 项目实测环境：Python 3.13.14 / torch 2.12.1 / transformers 5.12.1（Apple Silicon，MPS 可用）
+# 数据读取、Dataset/DataLoader、训练-验证-测试循环、指标统计均为手写实现，
+# 因此不需要 datasets / scikit-learn / matplotlib / swanlab。
+# 可视化使用 PyTorch 自带的 torch.utils.tensorboard.SummaryWriter。
+
+torch>=2.2
+transformers>=4.40
+tensorboard>=2.15

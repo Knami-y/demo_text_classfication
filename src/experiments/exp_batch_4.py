@@ -1,19 +1,26 @@
 
-from idlelib.iomenu import encoding
 from pathlib import Path
 import torch
-from scipy.sparse import data
 from torch import optim
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-BASE_DIR = Path(__file__).parent
-TRAIN_PATH = BASE_DIR / "train_3k.txt"
-TEST_PATH = BASE_DIR / "test_1k.txt"
-DEV_PATH = BASE_DIR / "dev_1k.txt"
+BASE_DIR = Path(__file__).resolve().parents[2]  # src/experiments/ 的上两级 = 项目根目录
+DATA_DIR = BASE_DIR / "data"
+CKPT_DIR = BASE_DIR / "checkpoints"
+RUNS_DIR = BASE_DIR / "runs"
 
-BATCH_SIZE = 64
+# 全新克隆的仓库里这两个目录可能不存在，先确保可写
+CKPT_DIR.mkdir(parents=True, exist_ok=True)
+RUNS_DIR.mkdir(parents=True, exist_ok=True)
+
+TRAIN_PATH = DATA_DIR / "train_3k.txt"
+DEV_PATH = DATA_DIR / "dev_1k.txt"
+TEST_PATH = DATA_DIR / "test_1k.txt"
+
+DEV_BATCH_SIZE = 16
+BATCH_SIZE = 4
 MODEL_PATH = "bert-base-chinese"
 
 
@@ -111,7 +118,7 @@ test_dataset = NewsDataset(test_data,tokenizer,label2id,max_length=128)
 
 #4.创建dataloader
 train_loader = DataLoader(train_dataset,batch_size=BATCH_SIZE,shuffle=True)
-dev_loader = DataLoader(dev_dataset,batch_size=BATCH_SIZE,shuffle=False)
+dev_loader = DataLoader(dev_dataset,batch_size=DEV_BATCH_SIZE,shuffle=False)
 test_loader = DataLoader(test_dataset,batch_size=BATCH_SIZE,shuffle=False)
 
 batch = next(iter(train_loader))
@@ -162,7 +169,7 @@ if __name__ == "__main__":
     Epochs = 3
     best_dev_acc = 0
     best_epoch = 0
-    writer = SummaryWriter("./runs/bodel_64size")
+    writer = SummaryWriter(str(RUNS_DIR / "model_4size"))
     for epoch in range(Epochs):
         print("epoch:", epoch + 1)
         model.train()#切换模型为训练模式
@@ -186,7 +193,7 @@ if __name__ == "__main__":
             # 更新参数
             opt.step()
             # 统计
-            total_loss = total_loss + loss.item()
+            total_loss = total_loss + loss.item()#每个batch的平均loss累加
             # 得到预测类别
             preds = torch.argmax(logits, dim=1)
             # 统计正确个数
@@ -194,7 +201,7 @@ if __name__ == "__main__":
             #统计已训练样本数量
             total += labels.size(0)
         # 总损失和正确率
-        train_loss = total_loss / len(train_loader)
+        train_loss = total_loss / len(train_loader)#每个batch的平均loss
         train_acc = correct / total
 
         # Dev验证
@@ -226,7 +233,7 @@ if __name__ == "__main__":
             torch.save({"epoch":best_epoch,
                         "model":model.state_dict(),
                         "optimizer":opt.state_dict(),
-                        "dev_acc":dev_acc},"best_model_64size.pth")
+                        "dev_acc":dev_acc}, CKPT_DIR / "model_4size.pth")
             print(f"保存最优模型： Epoch {best_epoch}, Best dev acc: {best_dev_acc:.4f}")
 
         print(
