@@ -14,7 +14,7 @@
 - 基线结果：**Dev Accuracy 85.40%，Train Accuracy 92.77%，Test Accuracy 84.40%**
   （通过 83% 参考指标）
 
-> 题目原本建议用 SwanLab 可视化。本项目改用 PyTorch 自带的 `SummaryWriter` + TensorBoard
+> 本项目改用 PyTorch 自带的 `SummaryWriter` + TensorBoard
 > 完成"训练过程与结果可视化"，未使用 `transformers.Trainer`、`datasets`、`scikit-learn`、
 > `matplotlib` 或 SwanLab。
 
@@ -49,7 +49,6 @@
 │   ├── screenshots/             # 单次运行的终端 / TensorBoard 截图
 │   └── README.md
 └── docs/
-    ├── BERT中文文本分类与超参数实验报告_草稿.docx
     └── 任务要求.png              # 课程题目原文截图
 ```
 
@@ -59,7 +58,7 @@
 ## 环境准备
 
 ```bash
-conda activate learn-pytorch     # 或自行准备 Python 3.10+ 环境
+conda activate learn-pytorch     # Python 3.10+ 环境
 pip install -r requirements.txt
 ```
 
@@ -248,14 +247,11 @@ Smoothed 数值；`最佳 Dev Acc` 是该实验保存 checkpoint 时的验证集
 4. **`test_1k.txt` 实际是 1064 条**：文件名沿用历史命名，见 `data/README.md`。
 5. **模型只从本地缓存加载**：`local_files_only=true` 时若缓存中没有 `bert-base-chinese`，
    脚本会直接报错，需要先按"环境准备"下载一次。
-6. **`docs/` 中的实验报告是早期草稿**：其中的数值来自更早一轮实验，与当前 `results/`、
-   本 README 的数值可能不一致；以当前代码重新跑出的结果为准。
 
 ## 相关文档
 
 | 文件 | 说明 |
 | --- | --- |
-| [`docs/BERT中文文本分类与超参数实验报告_草稿.docx`](docs/BERT中文文本分类与超参数实验报告_草稿.docx) | 实验报告草稿：实验设计、逐组曲线分析、结论与改进方向（早期版本） |
 | [`docs/任务要求.png`](docs/任务要求.png) | 课程题目原文截图（含 83% 参考指标的要求） |
 | [`data/README.md`](data/README.md) | 数据格式、字段、类别与分布 |
 | [`results/README.md`](results/README.md) | 图表与截图清单、读图注意事项 |

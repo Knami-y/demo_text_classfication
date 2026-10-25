@@ -2,16 +2,14 @@
 
 ## `figures/` —— 7 组实验的对比曲线
 
-由 TensorBoard 导出（关闭平滑），把 7 组实验画在同一张图上，是实验报告的核心插图。
+由 TensorBoard 导出（关闭平滑），把 7 组实验画在同一张图上，是复盘实验的主要依据。
 
-| 文件 | 内容 | 对应报告插图 |
-| --- | --- | --- |
-| `dev_acc.png` | `Accuracy/dev`：验证集准确率随 epoch 变化 | 图 2 |
-| `dev_loss.png` | `Loss/dev`：验证集损失随 epoch 变化 | 补充图 |
-| `train_acc.png` | `Accuracy/train`：训练集准确率随 epoch 变化 | 图 3 |
-| `train_loss.png` | `Loss/train`：训练损失随 epoch 变化 | 图 4 |
-
-> 报告中的"图 1（各实验 Run 与颜色对应）"只在 `.docx` 内部，没有对应的独立图片文件。
+| 文件 | 内容 |
+| --- | --- |
+| `dev_acc.png` | `Accuracy/dev`：验证集准确率随 epoch 变化 |
+| `dev_loss.png` | `Loss/dev`：验证集损失随 epoch 变化 |
+| `train_acc.png` | `Accuracy/train`：训练集准确率随 epoch 变化 |
+| `train_loss.png` | `Loss/train`：训练损失随 epoch 变化 |
 
 ## `screenshots/` —— 单次运行的终端截图
 

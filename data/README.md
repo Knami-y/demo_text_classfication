@@ -24,7 +24,7 @@ id_!_label_id_!_label_name_!_title_!_keywords
 | `dev_1k.txt` | 1000 | 验证集（每个 epoch 评估、选择最优 checkpoint） |
 | `test_1k.txt` | 1064 | 测试集（只在最后评估一次） |
 
-> 注意：文件名写作 `test_1k`，但实际是 **1064 条**（实验报告里写的 1000 条略有出入）。
+> 注意：文件名写作 `test_1k`，但实际是 **1064 条**（早期统计里写的 1000 条略有出入）。
 > 原始数据来自 [今日头条文本分类数据集](https://github.com/aceimnorstuvwxz/toutiao-text-classfication-dataset)。
 
 ## 类别与分布
