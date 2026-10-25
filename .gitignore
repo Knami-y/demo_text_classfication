@@ -4,16 +4,22 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
+.pytest_cache/
+.ipynb_checkpoints/
 
 # ---------------- 训练产物（体积很大，不入库）----------------
 *.pth
 *.pt
+checkpoints/*
+!checkpoints/README.md
 runs/
 
 # ---------------- IDE / 操作系统 ----------------
 .idea/
 .vscode/
 .DS_Store
+*.swp
 
 # ---------------- 其他 ----------------
 *.log
+docs/~$*.docx
