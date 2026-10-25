@@ -1,135 +1,89 @@
-from pathlib import Path
+import argparse
+import json
 
-from torch.utils.data import DataLoader, Dataset
-from transformers import AutoTokenizer,AutoModelForSequenceClassification
 import torch
+from torch.utils.data import DataLoader
+from transformers import AutoTokenizer, DataCollatorWithPadding
+
+from config import Config
+from dataset import NewsDataset,create_collate_fn
+from model import build_model
 
 
-BASE_DIR = Path(__file__).resolve().parents[1]  # src/ 的上一级 = 项目根目录
-DATA_DIR = BASE_DIR / "data"
-CKPT_DIR = BASE_DIR / "checkpoints"
-RUNS_DIR = BASE_DIR / "runs"
+def main():
+    parser = argparse.ArgumentParser(description = "测试模型")
+    parser.add_argument("--exp",default="base",help="config.json 中的实验名")
+    args = parser.parse_args()
 
-# 全新克隆的仓库里这两个目录可能不存在，先确保可写
-CKPT_DIR.mkdir(parents=True, exist_ok=True)
-RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    #1.读取配置
+    config = Config(exp_name=args.exp)
+    with open(config.label_map_path,"r",encoding = "utf-8") as f:
+        label2id = json.load(f)
 
-TRAIN_PATH = DATA_DIR / "train_3k.txt"
-DEV_PATH = DATA_DIR / "dev_1k.txt"
-TEST_PATH = DATA_DIR / "test_1k.txt"
-
-BATCH_SIZE = 16
-MODEL_PATH = "bert-base-chinese"
-
-
-
-def read_data(path):
-    data = []
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-
-            parts = line.split("_!_")
-            label = parts[1].strip()
-            title = parts[3].strip()
-            keywords = parts[4].strip()
-
-            if keywords:
-                text = title + " " +keywords
-            else:
-                text = title
-
-            data.append([text,label])
-
-    return data
-
-test_data = read_data(TEST_PATH)
-print("test的数量:",len(test_data))
-
-label2id = {
-    "100": 0,
-    "101": 1,
-    "102": 2,
-    "103": 3,
-    "104": 4,
-    "106": 5,
-    "107": 6,
-    "108": 7,
-    "109": 8,
-    "110": 9,
-    "112": 10,
-    "113": 11,
-    "114": 12,
-    "115": 13,
-    "116": 14
-}
-
-class NewsDataset(Dataset):
-    def __init__(self, data,tokenizer,label2id,max_length=128):
-        self.data = data
-        self.tokenizer = tokenizer
-        self.label2id = label2id
-        self.max_length = max_length
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, index):
-        text,label = self.data[index]
-
-        encoding = self.tokenizer(
-            text,
-            max_length=self.max_length,
-            padding="max_length",
-            truncation=True,
-            return_tensors="pt",
+    #2.数据处理
+    tokenizer = AutoTokenizer.from_pretrained(
+        config["model_path"],
+        local_files_only = config["local_files_only"],
+    )
+    test_dataset = NewsDataset(
+        config.test_path,
+        tokenizer = tokenizer,
+        label2id = label2id,
+        max_length=config["max_length"],
+    )
+    if len(test_dataset) == 0:
+        raise ValueError("训练集或验证集为空，请检查数据！")
+    if config["dynamic_padding"]:
+        collate_fn = DataCollatorWithPadding(tokenizer=tokenizer)
+    else:
+        collate_fn = DataCollatorWithPadding(
+            tokenizer=tokenizer,
+            padding = "max_length",
+            max_length=config["max_length"]
         )
 
-        item = {
-            "input_ids": encoding["input_ids"].squeeze(0),
-            "attention_mask": encoding["attention_mask"].squeeze(0),
-            "labels": torch.tensor(self.label2id[label], dtype=torch.long),
+    test_dataloader = DataLoader(test_dataset, batch_size = config["batch_size"], collate_fn = collate_fn)
 
-        }#把tokenizer编码后的结果整理为一个字典
-        return item
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH,local_files_only=True)
+    if not config.checkpoint_path.is_file():
+        raise FileNotFoundError(f"找不到模型权重:{config.checkpoint_path}")
+    model = build_model(config,label2id)
+    checkpoint = torch.load(
+        config.checkpoint_path,
+        map_location = "cpu",
+        weights_only=True,
+    )
+    model.load_state_dict(checkpoint["model"])
 
-test_dataset = NewsDataset(data = test_data,tokenizer=tokenizer,label2id=label2id,max_length=128)
-test_dataloader = DataLoader(test_dataset,batch_size=BATCH_SIZE,shuffle=False)
+    device = "cuda" if torch.cuda.is_available() else (
+        "mps" if torch.backends.mps.is_available() else "cpu"
+    )
+    model = model.to(device)
+    model.eval()
 
-model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH,
-                                                           num_labels=len(label2id),
-                                                           local_files_only=True)
+    print(f"实验名称：{args.exp}")
+    print(f"测试样本数：{len(test_dataset)}")
+    print(f"使用设备：{device}")
+    print(f"加载模型：{config.checkpoint_path}")
+    print(f"最佳 Epoch：{checkpoint['epoch']}")
+    print(f"最佳 Dev Acc：{checkpoint['dev_acc'] * 100:.2f}%")
 
-if torch.backends.mps.is_available():
-    device = torch.device("mps")
-else:
-    device = torch.device("cpu")
+    total_loss = 0
+    correct = 0
+    total = 0
 
-checkpoint = torch.load(CKPT_DIR / "best_model.pth", map_location=device)
-model.load_state_dict(checkpoint["model"])
-model = model.to(device)
-print("最佳模型 Epoch:", checkpoint["epoch"])
-print("最佳模型 Dev Acc:", checkpoint["dev_acc"])
-model.eval()
+    with torch.no_grad():
+        for batch in test_dataloader:
+            batch = {key: value.to (device) for key, value in batch.items()}
+            outputs = model(**batch)
+            labels = batch["labels"]
+            predictions = outputs.logits.argmax(dim = 1)
 
-# Test开始
-test_correct = 0
-test_total = 0
-print("开始测试模型：")
-with torch.no_grad():
-    for batch in test_dataloader:
-        input_ids = batch["input_ids"].to(device)
-        attention_mask = batch["attention_mask"].to(device)
-        labels = batch["labels"].to(device)
+            total_loss += outputs.loss.item() * labels.size(0)
+            correct += (predictions == labels).sum().item()
+            total += labels.size(0)
 
-        outputs = model(input_ids=input_ids,attention_mask=attention_mask)
-        logits = outputs.logits
-        preds = torch.argmax(logits,dim=1)
-        test_correct += (preds == labels).sum().item()
-        test_total += labels.size(0)
+    print(f"Test Loss:{total_loss / total:.4f}")
+    print(f"Test Accuracy:{correct / total:.4f}")
 
-test_acc = test_correct / test_total
-print("The test acc:",test_acc)
+if __name__ == "__main__":
+    main()

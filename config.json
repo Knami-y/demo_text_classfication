@@ -1,0 +1,80 @@
+{
+  "_comment": [
+    "本项目唯一配置源：替代原 train.py / dataset.py 里写死的常量。",
+    "defaults 是基线配置；experiments 里只写与基线不同的键，运行时与 defaults 浅合并。",
+    "所有路径都相对项目根目录，代码里用 Path(__file__).resolve().parents[1] 解析，不要依赖当前工作目录。",
+    "run_name -> runs/<run_name>（TensorBoard 日志目录）；checkpoint_name -> checkpoints/<checkpoint_name>。",
+    "exp_batch_4 的 eval_batch_size=16 来自原 exp_batch_4.py 里的 DEV_BATCH_SIZE，只作用于验证集，train/test 仍用 batch_size。"
+  ],
+
+  "defaults": {
+    "model_path": "bert-base-chinese",
+    "local_files_only": true,
+
+    "max_length": 128,
+    "dynamic_padding": true,
+
+    "batch_size": 16,
+    "epochs": 3,
+    "lr": 2e-5,
+    "seed": 42,
+
+    "hidden_dropout_prob": 0.1,
+    "attention_probs_dropout_prob": 0.1,
+    "classifier_dropout": 0.1,
+
+    "train_file": "data/train_3k.txt",
+    "dev_file": "data/dev_1k.txt",
+    "test_file": "data/test_1k.txt",
+    "label_map_file": "label_map.json",
+
+    "checkpoint_dir": "checkpoints",
+    "checkpoint_name": "best_model.pth",
+    "runs_dir": "runs",
+    "run_name": "bert_text_classification"
+  },
+
+  "experiments": {
+    "base": {
+      "run_name": "bert_text_classification",
+      "checkpoint_name": "best_model.pth"
+    },
+
+    "exp_lr_1e-5": {
+      "lr": 1e-5,
+      "run_name": "model_lr1e-5",
+      "checkpoint_name": "best_model_1e-5.pth"
+    },
+
+    "exp_lr_1e-4": {
+      "lr": 1e-4,
+      "run_name": "model_lr1e-4",
+      "checkpoint_name": "best_model_1e-4.pth"
+    },
+
+    "exp_batch_4": {
+      "batch_size": 4,
+      "eval_batch_size": 16,
+      "run_name": "model_4size",
+      "checkpoint_name": "model_4size.pth"
+    },
+
+    "exp_batch_64": {
+      "batch_size": 64,
+      "run_name": "model_64size",
+      "checkpoint_name": "best_model_64size.pth"
+    },
+
+    "exp_dropout_0.03": {
+      "hidden_dropout_prob": 0.03,
+      "run_name": "model_0.03dropout",
+      "checkpoint_name": "model_0.03dropout.pth"
+    },
+
+    "exp_dropout_0.3": {
+      "hidden_dropout_prob": 0.3,
+      "run_name": "model_0.3dropout",
+      "checkpoint_name": "model_0.3dropout.pth"
+    }
+  }
+}
