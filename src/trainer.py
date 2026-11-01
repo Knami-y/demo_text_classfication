@@ -1,6 +1,6 @@
 import torch
-from torch.utils.tensorboard import SummaryWriter
 from tqdm.auto import tqdm
+import swanlab
 
 class Trainer:
     def __init__(self,model,train_loader,dev_loader,
@@ -22,7 +22,6 @@ class Trainer:
         self.checkpoint_path = config.checkpoint_path
         self.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
         config.run_dir.mkdir(parents=True, exist_ok=True)
-        self.writer = SummaryWriter(log_dir=str(config.run_dir))
 
         self.best_dev_acc = -1.0
         self.best_epoch = 0
@@ -30,24 +29,24 @@ class Trainer:
     def train_one_epoch(self,epoch,epochs):
         self.model.train()
         total_loss = 0
-        correct = 0 #预测正确的样本数量
-        total = 0  #总共的样本数量
+        correct = 0
+        total = 0
 
         progress_bar = tqdm(
             self.train_loader,
             desc=f"Epoch {epoch}/{epochs} Training",
-            leave=True
+            leave=False
         )
 
         for batch in progress_bar:
             batch = {key: value.to(self.device) for key, value in batch.items()}
             labels = batch["labels"]
 
-            self.optimizer.zero_grad()# 清空梯度
+            self.optimizer.zero_grad()
             outputs = self.model(**batch)
             loss = outputs.loss
-            loss.backward()#反向传播
-            self.optimizer.step()#更新参数
+            loss.backward()
+            self.optimizer.step()
 
             total_loss += loss.item()*labels.size(0)
             predictions = outputs.logits.argmax(dim=1)
@@ -89,20 +88,32 @@ class Trainer:
 
         return dev_loss, dev_acc
 
+    def swan_log(self,epoch,train_loss,train_acc,dev_loss,dev_acc):
+        swanlab.log(
+            {
+                "train_loss": train_loss,
+                "train_acc": train_acc,
+                "dev_loss": dev_loss,
+                "dev_acc": dev_acc,
+            },
+        step=epoch
+        )
+
     def train(self):
         epochs = self.config["epochs"]
-        print("使用设备：",self.device)
-
         try:
-            for epoch in range(1,epochs+1):
-                print(f"\nEpoch {epoch}/{epochs}")
-                train_loss, train_acc = self.train_one_epoch(epoch,epochs)
-                dev_loss,dev_acc = self.evaluate()
+            swanlab.init(
+                project=self.config["run_name"],
+                logdir=self.config.run_dir,
+                config=self.config.to_dict(),
+                name=self.config.exp_name,
 
-                self.writer.add_scalar("Loss/train",train_loss,epoch-1)
-                self.writer.add_scalar("Accuracy/train",train_acc,epoch-1)
-                self.writer.add_scalar("Accuracy/dev",dev_acc,epoch-1)
-                self.writer.add_scalar("Loss/dev",dev_loss,epoch-1)
+            )
+
+            for epoch in range(1, epochs + 1):
+                print(f"\nEpoch {epoch}/{epochs}")
+                train_loss, train_acc = self.train_one_epoch(epoch, epochs)
+                dev_loss, dev_acc = self.evaluate()
 
                 if dev_acc > self.best_dev_acc:
                     self.best_dev_acc = dev_acc
@@ -118,6 +129,8 @@ class Trainer:
                     )
                     print(f"保存最优模型: Epoch {epoch}, Dev Acc: {dev_acc:.4f}")
 
+                self.swan_log(epoch,train_loss,train_acc,dev_loss,dev_acc)
+
                 print(
                     f"Epoch {epoch}/{epochs} "
                     f"Train Loss: {train_loss:.4f} "
@@ -126,9 +139,7 @@ class Trainer:
                     f"Dev Acc: {dev_acc * 100:.2f}%"
                 )
         finally:
-            self.writer.close()
+            swanlab.finish()
 
         print(f"训练结束，最佳Epoch {self.best_epoch} Dev Acc: {self.best_dev_acc:.4f}")
         return self.best_dev_acc
-
-

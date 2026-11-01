@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, DataCollatorWithPadding
 
 from config import Config
-from dataset import NewsDataset,create_collate_fn
+from dataset import NewsDataset
 from model import build_model
 
 
@@ -15,12 +15,10 @@ def main():
     parser.add_argument("--exp",default="base",help="config.json 中的实验名")
     args = parser.parse_args()
 
-    #1.读取配置
     config = Config(exp_name=args.exp)
     with open(config.label_map_path,"r",encoding = "utf-8") as f:
         label2id = json.load(f)
 
-    #2.数据处理
     tokenizer = AutoTokenizer.from_pretrained(
         config["model_path"],
         local_files_only = config["local_files_only"],
@@ -32,7 +30,7 @@ def main():
         max_length=config["max_length"],
     )
     if len(test_dataset) == 0:
-        raise ValueError("训练集或验证集为空，请检查数据！")
+        raise ValueError("测试集为空")
     if config["dynamic_padding"]:
         collate_fn = DataCollatorWithPadding(tokenizer=tokenizer)
     else:

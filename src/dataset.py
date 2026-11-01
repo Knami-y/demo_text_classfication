@@ -1,23 +1,7 @@
 from pathlib import Path
 from torch.utils.data import Dataset
-from transformers import DataCollatorWithPadding
 
-
-BASE_DIR = Path(__file__).resolve().parents[1]  # src/ 的上一级 = 项目根目录
-DATA_DIR = BASE_DIR / "data"
-CKPT_DIR = BASE_DIR / "checkpoints"
-RUNS_DIR = BASE_DIR / "runs"
-
-# 全新克隆的仓库里这两个目录可能不存在，先确保可写
-CKPT_DIR.mkdir(parents=True, exist_ok=True)
-RUNS_DIR.mkdir(parents=True, exist_ok=True)
-
-TRAIN_PATH = DATA_DIR / "train_3k.txt"
-DEV_PATH = DATA_DIR / "dev_1k.txt"
-TEST_PATH = DATA_DIR / "test_1k.txt"
-
-BATCH_SIZE = 16
-MODEL_PATH = "bert-base-chinese"
+BASE_DIR = Path(__file__).resolve().parents[1]
 
 class NewsDataset(Dataset):
 
@@ -34,7 +18,7 @@ class NewsDataset(Dataset):
             encoding = tokenizer(
                 text,
                 max_length = self.max_length,
-                truncation = True,#自动截断
+                truncation = True,
             )
 
             self.data.append(
@@ -49,7 +33,7 @@ class NewsDataset(Dataset):
         data = []
         with open(path, "r", encoding="utf-8") as f:
             for line in f:
-                line = line.strip() # 删除字符间的空格
+                line = line.strip()
 
                 if not line:
                     continue
@@ -59,9 +43,9 @@ class NewsDataset(Dataset):
                 if len(parts) < 5:
                     continue
 
-                label = parts[1].strip()  # 类别
-                title = parts[3].strip()  # 新闻标题
-                keywords = parts[4].strip()  # 关键词
+                label = parts[1].strip()
+                title = parts[3].strip()
+                keywords = parts[4].strip()
 
                 if keywords:
                     text = title + " " + keywords
@@ -78,8 +62,4 @@ class NewsDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, index):
-
         return self.data[index]
-
-def create_collate_fn(tokenizer):
-    return DataCollatorWithPadding(tokenizer = tokenizer)
