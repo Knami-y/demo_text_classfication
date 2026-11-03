@@ -4,68 +4,32 @@ import json
 BASE_DIR = Path(__file__).resolve().parents[1]
 
 class Config:
-    def __init__(self,exp_name="base",config_path=None):
-        if config_path is None:
-            config_path = BASE_DIR / "config.json"
-        else:
-            config_path = Path(config_path)
+    def __init__(self, exp_name="base"):
+        config_path = BASE_DIR / "json" / f"{exp_name}.json"
 
-            if not config_path.is_absolute():
-                config_path = BASE_DIR / config_path
+        if not config_path.is_file():
+            raise FileNotFoundError(config_path)
 
-        with open(config_path,"r",encoding = "utf-8") as f:
-            config_data = json.load(f)
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
 
-        defaults = config_data["defaults"]
-        experiments = config_data["experiments"]
-
-        if exp_name not in experiments:
-            available_experience = ",".join(experiments.keys())
-
-            raise ValueError(
-                f"实验'{exp_name}'不存在\n"
-                f"可用实验：{available_experience}"
-            )
-
-        self.config = defaults.copy()
-        self.config.update(experiments[exp_name])
-
+        self.config = data
         self.exp_name = exp_name
         self.config_path = config_path
 
-    def __getitem__(self,key):
+        for key, value in data.items():
+            setattr(self, key, value)
+
+        self.train_path = BASE_DIR / self.config["train_file"]
+        self.dev_path = BASE_DIR / self.config["dev_file"]
+        self.test_path = BASE_DIR / self.config["test_file"]
+        self.label_map_path = BASE_DIR / self.config["label_map_file"]
+
+        self.checkpoint_path = BASE_DIR / self.config["checkpoint_dir"] / self.config["checkpoint_name"]
+        self.run_dir = BASE_DIR / self.config["runs_dir"] / self.config["run_name"]
+
+    def __getitem__(self, key):
         return self.config[key]
+
     def to_dict(self):
         return self.config.copy()
-
-    @property
-    def train_path(self):
-            return BASE_DIR / self["train_file"]
-
-    @property
-    def dev_path(self):
-        return BASE_DIR / self["dev_file"]
-
-    @property
-    def test_path(self):
-        return BASE_DIR / self["test_file"]
-
-    @property
-    def label_map_path(self):
-        return BASE_DIR / self["label_map_file"]
-
-    @property
-    def checkpoint_dir(self):
-        return BASE_DIR / self["checkpoint_dir"]
-
-    @property
-    def checkpoint_path(self):
-        return self.checkpoint_dir / self["checkpoint_name"]
-
-    @property
-    def runs_dir(self):
-        return BASE_DIR / self["runs_dir"]
-
-    @property
-    def run_dir(self):
-        return self.runs_dir / self["run_name"]
