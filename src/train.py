@@ -3,11 +3,10 @@ import json
 import random
 import numpy as np
 import torch
-
+from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
-from transformers import AutoTokenizer, DataCollatorWithPadding
 from config import Config
-from dataset import NewsDataset
+from dataset import NewsDataset, make_collate_fn
 from model import build_model
 from trainer import Trainer
 
@@ -26,36 +25,29 @@ def set_seed(seed):
 
 def main():
     parser = argparse.ArgumentParser(description="BERT 中文新闻文本分类训练")
-    parser.add_argument("--exp",default="base",help="config.json 中的实验名称")
+    parser.add_argument("--exp",default="base",help="json/ 的实验名")
     args = parser.parse_args()
 
     config = Config(exp_name=args.exp)
     set_seed(config["seed"])
 
+    tokenizer = AutoTokenizer.from_pretrained(
+        pretrained_model_name_or_path=config["model_path"],
+        local_files_only=config["local_files_only"],
+    )
+
     with open(config.label_map_path,"r",encoding = "utf-8") as f:
         label2id = json.load(f)
 
-    tokenizer = AutoTokenizer.from_pretrained(config["model_path"],
-                                              local_files_only=config["local_files_only"])
-    train_dataset = NewsDataset(config.train_path,
-                                tokenizer=tokenizer,
-                                label2id=label2id,
-                                max_length=config["max_length"]
-                                )
-    dev_dataset = NewsDataset(config.dev_path,
-                              tokenizer=tokenizer,
-                              label2id=label2id,
-                              max_length=config["max_length"]
-                              )
+    train_dataset = NewsDataset(config.train_path)
+    dev_dataset = NewsDataset(config.dev_path)
 
-    if config["dynamic_padding"]:
-        collate_fn = DataCollatorWithPadding(tokenizer=tokenizer)
-    else:
-        collate_fn = DataCollatorWithPadding(
-            tokenizer=tokenizer,
-            padding = "max_length",
-            max_length=config["max_length"]
-        )
+    collate_fn = make_collate_fn(
+        tokenizer=tokenizer,
+        label2id=label2id,
+        max_length=config["max_length"],
+    )
+
 
     generator = torch.Generator()
     generator.manual_seed(config["seed"])

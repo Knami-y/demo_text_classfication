@@ -2,43 +2,36 @@ import argparse
 import json
 
 import torch
+from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
-from transformers import AutoTokenizer, DataCollatorWithPadding
 
 from config import Config
-from dataset import NewsDataset
+from dataset import NewsDataset, make_collate_fn
 from model import build_model
 
 
 def main():
     parser = argparse.ArgumentParser(description = "测试模型")
-    parser.add_argument("--exp",default="base",help="config.json 中的实验名")
+    parser.add_argument("--exp",default="base",help="json/ 的实验名")
     args = parser.parse_args()
 
     config = Config(exp_name=args.exp)
-    with open(config.label_map_path,"r",encoding = "utf-8") as f:
-        label2id = json.load(f)
-
     tokenizer = AutoTokenizer.from_pretrained(
-        config["model_path"],
+        pretrained_model_name_or_path=config["model_path"],
         local_files_only = config["local_files_only"],
     )
-    test_dataset = NewsDataset(
-        config.test_path,
-        tokenizer = tokenizer,
-        label2id = label2id,
-        max_length=config["max_length"],
-    )
+    with open(config.label_map_path,"r",encoding = "utf-8") as f:
+        label2id = json.load(f)
+    test_dataset = NewsDataset(config.test_path)
+
     if len(test_dataset) == 0:
         raise ValueError("测试集为空")
-    if config["dynamic_padding"]:
-        collate_fn = DataCollatorWithPadding(tokenizer=tokenizer)
-    else:
-        collate_fn = DataCollatorWithPadding(
-            tokenizer=tokenizer,
-            padding = "max_length",
-            max_length=config["max_length"]
-        )
+
+    collate_fn = make_collate_fn(
+        tokenizer=tokenizer,
+        label2id=label2id,
+        max_length=config["max_length"],
+    )
 
     test_dataloader = DataLoader(test_dataset, batch_size = config["batch_size"], collate_fn = collate_fn)
 

@@ -1,33 +1,11 @@
-from pathlib import Path
+import torch
 from torch.utils.data import Dataset
-
-BASE_DIR = Path(__file__).resolve().parents[1]
 
 class NewsDataset(Dataset):
 
-    def __init__(self,path,tokenizer,label2id,max_length=128):
-        self.label2id = label2id
-        self.max_length = max_length
-        self.tokenizer = tokenizer
+    def __init__(self,path):
+        self.data = self.read_data(path)
 
-        raw_data = self.read_data(path)
-
-        self.data  = []
-
-        for text,label in raw_data:
-            encoding = tokenizer(
-                text,
-                max_length = self.max_length,
-                truncation = True,
-            )
-
-            self.data.append(
-                {
-                    "input_ids": encoding["input_ids"],
-                    "attention_mask": encoding["attention_mask"],
-                    "labels": self.label2id[label]
-                }
-            )
     @staticmethod
     def read_data(path):
         data = []
@@ -56,10 +34,23 @@ class NewsDataset(Dataset):
 
         return data
 
-
-
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, index):
         return self.data[index]
+
+def make_collate_fn(tokenizer,label2id,max_length):
+    def collate_fn(batch):
+        texts = [item[0] for item in batch]
+        labels = [label2id[item[1]] for item in batch]
+        encoding = tokenizer(
+            texts,
+            padding=True,
+            max_length=max_length,
+            truncation=True,
+            return_tensors="pt",
+        )
+        encoding["labels"] = torch.tensor(labels,dtype=torch.long)
+        return encoding
+    return collate_fn
