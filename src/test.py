@@ -61,13 +61,15 @@ def main():
     total = 0
 
     with torch.no_grad():
+        criterion = torch.nn.CrossEntropyLoss()
         for batch in test_dataloader:
             batch = {key: value.to (device) for key, value in batch.items()}
-            outputs = model(**batch)
-            labels = batch["labels"]
-            predictions = outputs.logits.argmax(dim = 1)
+            labels = batch.pop("labels")
+            logits = model(**batch)
+            loss = criterion(logits, labels)
+            predictions = logits.argmax(dim = 1)
 
-            total_loss += outputs.loss.item() * labels.size(0)
+            total_loss += loss.item() * labels.size(0)
             correct += (predictions == labels).sum().item()
             total += labels.size(0)
 

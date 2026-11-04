@@ -1,4 +1,5 @@
 import torch
+from torch import nn
 from tqdm.auto import tqdm
 import swanlab
 
@@ -17,6 +18,7 @@ class Trainer:
 
         self.device = torch.device(device)
         self.model = model.to(device)
+        self.loss_fn = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.AdamW(self.model.parameters(),lr = config["lr"])
 
         self.checkpoint_path = config.checkpoint_path
@@ -40,16 +42,16 @@ class Trainer:
 
         for batch in progress_bar:
             batch = {key: value.to(self.device) for key, value in batch.items()}
-            labels = batch["labels"]
+            labels = batch.pop("labels")
 
             self.optimizer.zero_grad()
-            outputs = self.model(**batch)
-            loss = outputs.loss
+            logits = self.model(**batch)
+            loss = self.loss_fn(logits, labels)
             loss.backward()
             self.optimizer.step()
 
             total_loss += loss.item()*labels.size(0)
-            predictions = outputs.logits.argmax(dim=1)
+            predictions = logits.argmax(dim=1)
             correct += (predictions == labels).sum().item()
             total += labels.size(0)
 
@@ -72,12 +74,12 @@ class Trainer:
         with torch.no_grad():
             for batch in self.dev_loader:
                 batch = {key: value.to(self.device) for key, value in batch.items()}
+                labels = batch.pop("labels")
 
-                outputs = self.model(**batch)
-                loss = outputs.loss
+                logits = self.model(**batch)
+                loss = self.loss_fn(logits, labels)
 
-                predictions = outputs.logits.argmax(dim=1)
-                labels = batch["labels"]
+                predictions = logits.argmax(dim=1)
 
                 total_loss += loss.item() * labels.size(0)
                 correct += (predictions == labels).sum().item()
@@ -96,15 +98,15 @@ class Trainer:
                 "dev_loss": dev_loss,
                 "dev_acc": dev_acc,
             },
-        step=epoch
+            step=epoch
         )
 
     def train(self):
         epochs = self.config["epochs"]
         try:
             swanlab.init(
-                project=self.config["run_name"],
-                logdir=self.config.run_dir,
+                project="bert_text_classification",
+                logdir=str(self.config.run_dir),
                 config=self.config.to_dict(),
                 name=self.config.exp_name,
 
