@@ -33,3 +33,20 @@ class Config:
 
     def to_dict(self):
         return self.config.copy()
+
+def load_label_map(path):
+    with open(path, "r", encoding="utf-8") as f:
+        label2id = json.load(f)
+    label2id = {
+        str(label): int(idx)
+        for label, idx in label2id.items()
+    }
+    id2label = {
+        idx: label
+        for label, idx in label2id.items()
+    }
+    return label2id, id2label
+
+
+
+

@@ -1,11 +1,10 @@
 import argparse
-import json
 
 import torch
 from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
 
-from utils import Config
+from utils import Config,load_label_map
 from dataset import NewsDataset, make_collate_fn
 from model import build_model
 
@@ -20,8 +19,7 @@ def main():
         pretrained_model_name_or_path=config["model_path"],
         local_files_only = config["local_files_only"],
     )
-    with open(config.label_map_path,"r",encoding = "utf-8") as f:
-        label2id = json.load(f)
+    label2id, id2label = load_label_map(config.label_map_path)
     test_dataset = NewsDataset(config.test_path)
 
     if len(test_dataset) == 0:
@@ -37,7 +35,7 @@ def main():
 
     if not config.checkpoint_path.is_file():
         raise FileNotFoundError(f"找不到模型权重:{config.checkpoint_path}")
-    model = build_model(config,label2id)
+    model = build_model(config,label2id,id2label)
     checkpoint = torch.load(
         config.checkpoint_path,
         map_location = "cpu",

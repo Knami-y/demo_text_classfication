@@ -1,11 +1,10 @@
 import argparse
-import json
 import random
 import numpy as np
 import torch
 from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
-from utils import Config
+from utils import Config,load_label_map
 from dataset import NewsDataset, make_collate_fn
 from model import build_model
 from trainer import Trainer
@@ -36,8 +35,7 @@ def main():
         local_files_only=config["local_files_only"],
     )
 
-    with open(config.label_map_path,"r",encoding = "utf-8") as f:
-        label2id = json.load(f)
+    label2id, id2label = load_label_map(config.label_map_path)
 
     train_dataset = NewsDataset(config.train_path)
     dev_dataset = NewsDataset(config.dev_path)
@@ -67,7 +65,7 @@ def main():
         collate_fn=collate_fn,
     )
 
-    model = build_model(config,label2id)
+    model = build_model(config,label2id,id2label)
     if args.exp == "exp_batch_64":
         model.gradient_checkpointing_enable()
     device = "cuda" if torch.cuda.is_available() else(
