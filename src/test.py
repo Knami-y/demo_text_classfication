@@ -5,7 +5,7 @@ import torch
 from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
 
-from config import Config
+from utils import Config
 from dataset import NewsDataset, make_collate_fn
 from model import build_model
 
