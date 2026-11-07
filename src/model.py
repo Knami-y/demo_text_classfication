@@ -1,7 +1,5 @@
 from torch import nn
 from transformers import AutoConfig, BertModel
-from transformers.models.gemma4.modular_gemma4 import token_type_ids_mask_function
-
 
 class BertClassifier(nn.Module):
     def __init__(self,config,label2id,id2label):
