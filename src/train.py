@@ -79,6 +79,7 @@ def main():
                       train_loader=train_loader,
                       dev_loader=dev_loader,
                       config=config,
+                      id2label=id2label,
                       device=device,
                       )
     trainer.train()

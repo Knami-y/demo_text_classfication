@@ -2,13 +2,15 @@ import torch
 from torch import nn
 from tqdm.auto import tqdm
 import swanlab
+from utils import compute_metrics
 
 class Trainer:
     def __init__(self,model,train_loader,dev_loader,
-                 config,device=None):
+                 config,id2label,device=None):
         self.config = config
         self.train_loader = train_loader
         self.dev_loader = dev_loader
+        self.id2label = id2label
 
         if device is None:
             if torch.backends.mps.is_available():
@@ -71,6 +73,9 @@ class Trainer:
         correct = 0
         total = 0
 
+        all_labels = []
+        all_predictions = []
+
         with torch.no_grad():
             for batch in self.dev_loader:
                 batch = {key: value.to(self.device) for key, value in batch.items()}
@@ -85,18 +90,32 @@ class Trainer:
                 correct += (predictions == labels).sum().item()
                 total += labels.size(0)
 
+                all_labels.extend(labels.detach().cpu().tolist())
+                all_predictions.extend(predictions.detach().cpu().tolist())
+
         dev_loss = total_loss / total
         dev_acc = correct / total
 
-        return dev_loss, dev_acc
+        report,metrics = compute_metrics(
+            all_labels,
+            all_predictions,
+            self.id2label,
+        )
+        print(report)
 
-    def swan_log(self,epoch,train_loss,train_acc,dev_loss,dev_acc):
+        return dev_loss, dev_acc, metrics
+
+    @staticmethod
+    def swan_log(epoch,train_loss,train_acc,dev_loss,dev_acc,metrics):
         swanlab.log(
             {
                 "train_loss": train_loss,
                 "train_acc": train_acc,
                 "dev_loss": dev_loss,
                 "dev_acc": dev_acc,
+                "dev_precision": metrics["macro_avg"]["precision"],
+                "dev_recall": metrics["macro_avg"]["recall"],
+                "dev_f1": metrics["macro_avg"]["f1"],
             },
             step=epoch
         )
@@ -115,7 +134,7 @@ class Trainer:
             for epoch in range(1, epochs + 1):
                 print(f"\nEpoch {epoch}/{epochs}")
                 train_loss, train_acc = self.train_one_epoch(epoch, epochs)
-                dev_loss, dev_acc = self.evaluate()
+                dev_loss, dev_acc, metrics = self.evaluate()
 
                 if dev_acc > self.best_dev_acc:
                     self.best_dev_acc = dev_acc
@@ -131,7 +150,12 @@ class Trainer:
                     )
                     print(f"保存最优模型: Epoch {epoch}, Dev Acc: {dev_acc:.4f}")
 
-                self.swan_log(epoch,train_loss,train_acc,dev_loss,dev_acc)
+                self.swan_log(
+                    epoch,
+                    train_loss,train_acc,
+                    dev_loss,dev_acc,
+                    metrics
+                )
 
                 print(
                     f"Epoch {epoch}/{epochs} "
