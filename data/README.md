@@ -15,8 +15,10 @@ id_!_label_id_!_label_name_!_title_!_keywords
 | `keywords` | 4 | 关键词，逗号分隔，可能为空 | `REV,Fuel,排气系统,ECU,Cut` |
 
 字段之间用 `_!_` 分隔。
+如：6553469076176372238_!_106_!_news_house_!_为什么那么多明星会来大亚湾买房？何家劲，吴启华，柳岩，西红柿
+_!_城市群,政府工作报告,湾区,大亚湾,粤港澳,惠州
 
-## 文件清单
+## 数据
 
 | 文件 | 行数 | 用途 |
 | --- | --- | --- |
@@ -24,20 +26,18 @@ id_!_label_id_!_label_name_!_title_!_keywords
 | `dev_1k.txt` | 1000 | 验证集（每个 epoch 评估、选择最优 checkpoint） |
 | `test_1k.txt` | 1064 | 测试集（只在最后评估一次） |
 
-> 注意：文件名写作 `test_1k`，但实际是 **1064 条**（早期统计里写的 1000 条略有出入）。
+> 注意：文件名写作 `test_1k`，但实际是 **1064 条**
 > 原始数据来自 [今日头条文本分类数据集](https://github.com/aceimnorstuvwxz/toutiao-text-classfication-dataset)。
 
 ## 类别与分布
 
-标签编号共 15 个，缺少 `105` 和 `111`：
+标签编号共 15 个，无 `105` 和 `111`类，具体如下：
 
 ```text
 100 101 102 103 104 106 107 108 109 110 112 113 114 115 116
 ```
 
-项目根目录的 `label_map.json` 保存唯一的 `label_id -> 连续 id` 映射，训练和测试都直接从
-该文件读取，不再由代码临时统计生成：
-
+`json/`文件下的 `label_map.json` 保存唯一的 `label_id -> 连续 id` 映射:
 ```json
 {
   "100": 0,
@@ -79,5 +79,6 @@ id_!_label_id_!_label_name_!_title_!_keywords
 text = title + " " + keywords if keywords else title
 ```
 
-关键词可能为空：训练集 945 条、验证集 305 条、测试集 326 条，此时只使用标题。
-超长截断到 `max_length = 128`；padding 由 `DataCollatorWithPadding` 按 batch 动态完成。
+关键词可能为空，如：训练集 945 条、验证集 305 条、测试集 326 条，此时只使用标题。
+
+padding由 `make_collate_fn` 完成动态填充，最大长度为128。

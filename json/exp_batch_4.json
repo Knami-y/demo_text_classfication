@@ -13,7 +13,7 @@
     "train_file": "data/train_3k.txt",
     "dev_file": "data/dev_1k.txt",
     "test_file": "data/test_1k.txt",
-    "label_map_file": "label_map.json",
+    "label_map_file": "json/label_map.json",
     "checkpoint_dir": "checkpoints",
     "checkpoint_name": "model_4size.pth",
     "runs_dir": "runs",
