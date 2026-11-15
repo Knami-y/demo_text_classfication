@@ -1,7 +1,6 @@
-# Python 3.10+
-
-torch>=2.2
-transformers>=4.40
-swanlab>=0.8
-tqdm>=4.66
-numpy>=1.26
+# Python==3.13.14
+torch==2.15.0
+transformers==5.12.1
+swanlab==0.10.3
+tqdm==4.68.3
+numpy==2.5.0
