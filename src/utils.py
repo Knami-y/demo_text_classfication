@@ -4,18 +4,21 @@ import json
 BASE_DIR = Path(__file__).resolve().parents[1]
 
 class Config:
-    def __init__(self, exp_name="base"):
-        config_path = BASE_DIR / "json" / f"{exp_name}.json"
-
-        if not config_path.is_file():
-            raise FileNotFoundError(config_path)
-
-        with open(config_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        self.config = data
+    def __init__(self, exp_name="base",data=None):
         self.exp_name = exp_name
-        self.config_path = config_path
+
+        if data is None:
+            config_path = BASE_DIR / "json" / f"{exp_name}.json"
+
+            if not config_path.is_file():
+                raise FileNotFoundError(config_path)
+            with open(config_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.config_path = config_path
+        else:
+            self.config_path = None
+            
+        self.config = dict(data)
 
         for key, value in data.items():
             setattr(self, key, value)

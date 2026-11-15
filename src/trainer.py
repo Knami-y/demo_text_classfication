@@ -128,7 +128,6 @@ class Trainer:
                 logdir=str(self.config.run_dir),
                 config=self.config.to_dict(),
                 name=self.config.exp_name,
-
             )
 
             for epoch in range(1, epochs + 1):
@@ -145,6 +144,13 @@ class Trainer:
                             "model": self.model.state_dict(),
                             "optimizer": self.optimizer.state_dict(),
                             "dev_acc": dev_acc,
+
+                            "config": self.config.to_dict(),
+                            "label2id":{
+                                label: idx
+                                for idx, label in self.id2label.items()
+                            },
+                            "id2label": self.id2label,
                         },
                         self.checkpoint_path,
                     )

@@ -1,10 +1,8 @@
 import argparse
-
 import torch
 from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
-
-from utils import Config,load_label_map
+from utils import Config
 from dataset import NewsDataset, make_collate_fn
 from model import build_model
 
@@ -15,11 +13,28 @@ def main():
     args = parser.parse_args()
 
     config = Config(exp_name=args.exp)
+    checkpoint_path = config.checkpoint_path
+    if not config.checkpoint_path.is_file():
+        raise FileNotFoundError(f"找不到模型权重:{config.checkpoint_path}")
+
+    checkpoint = torch.load(
+        config.checkpoint_path,
+        map_location = "cpu",
+        weights_only=True,
+    )
+
+    config = Config(
+        exp_name = config.exp_name,
+        data=checkpoint["config"],
+    )
+    id2label = checkpoint["id2label"]
+    label2id = checkpoint["label2id"]
+
     tokenizer = AutoTokenizer.from_pretrained(
         pretrained_model_name_or_path=config["model_path"],
         local_files_only = config["local_files_only"],
     )
-    label2id, id2label = load_label_map(config.label_map_path)
+
     test_dataset = NewsDataset(config.test_path)
 
     if len(test_dataset) == 0:
@@ -31,16 +46,13 @@ def main():
         max_length=config["max_length"],
     )
 
-    test_dataloader = DataLoader(test_dataset, batch_size = config["batch_size"], collate_fn = collate_fn)
-
-    if not config.checkpoint_path.is_file():
-        raise FileNotFoundError(f"找不到模型权重:{config.checkpoint_path}")
-    model = build_model(config,label2id,id2label)
-    checkpoint = torch.load(
-        config.checkpoint_path,
-        map_location = "cpu",
-        weights_only=True,
+    test_dataloader = DataLoader(
+        test_dataset,
+        batch_size=config["batch_size"],
+        collate_fn=collate_fn
     )
+
+    model = build_model(config,label2id,id2label)
     model.load_state_dict(checkpoint["model"])
 
     device = "cuda" if torch.cuda.is_available() else (
@@ -56,12 +68,13 @@ def main():
     print(f"最佳 Epoch：{checkpoint['epoch']}")
     print(f"最佳 Dev Acc：{checkpoint['dev_acc'] * 100:.2f}%")
 
+    criterion = torch.nn.CrossEntropyLoss()
+
     total_loss = 0
     correct = 0
     total = 0
 
     with torch.no_grad():
-        criterion = torch.nn.CrossEntropyLoss()
         for batch in test_dataloader:
             batch = {key: value.to (device) for key, value in batch.items()}
             labels = batch.pop("labels")
