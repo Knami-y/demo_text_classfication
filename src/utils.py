@@ -8,7 +8,7 @@ class Config:
         self.exp_name = exp_name
 
         if data is None:
-            config_path = BASE_DIR / "json" / f"{exp_name}.json"
+            config_path = BASE_DIR / "config_exp" / f"{exp_name}.json"
 
             if not config_path.is_file():
                 raise FileNotFoundError(config_path)
@@ -17,7 +17,7 @@ class Config:
             self.config_path = config_path
         else:
             self.config_path = None
-            
+
         self.config = dict(data)
 
         for key, value in data.items():

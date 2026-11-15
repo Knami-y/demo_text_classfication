@@ -3,8 +3,7 @@
     "local_files_only": true,
     "max_length": 128,
     "dynamic_padding": true,
-    "batch_size": 64,
-    "eval_batch_size": 16,
+    "batch_size": 16,
     "epochs": 3,
     "lr": 2e-5,
     "seed": 42,
@@ -13,9 +12,9 @@
     "train_file": "data/train_3k.txt",
     "dev_file": "data/dev_1k.txt",
     "test_file": "data/test_1k.txt",
-    "label_map_file": "json/label_map.json",
+    "label_map_file": "config_exp/label_map.json",
     "checkpoint_dir": "checkpoints",
-    "checkpoint_name": "model_64size.pth",
+    "checkpoint_name": "best_model.pth",
     "runs_dir": "runs",
-    "run_name": "model_64size"
+    "run_name": "bert_text_classification"
 }

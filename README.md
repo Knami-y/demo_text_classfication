@@ -49,7 +49,7 @@ python src/test.py --exp base
 ```text
 .
 ├── README.md
-├── json/
+├── config_exp/
 │   ├── base.json
 │   ├── exp_*.json
 │   └── label_map.json

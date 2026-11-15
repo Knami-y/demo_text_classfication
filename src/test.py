@@ -9,7 +9,7 @@ from model import build_model
 
 def main():
     parser = argparse.ArgumentParser(description = "测试模型")
-    parser.add_argument("--exp",default="base",help="json/ 的实验名")
+    parser.add_argument("--exp",default="base",help="config_exp/ 的实验名")
     args = parser.parse_args()
 
     config = Config(exp_name=args.exp)

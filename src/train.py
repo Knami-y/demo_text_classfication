@@ -24,7 +24,7 @@ def set_seed(seed):
 
 def main():
     parser = argparse.ArgumentParser(description="BERT 中文新闻文本分类训练")
-    parser.add_argument("--exp",default="base",help="json/ 的实验名")
+    parser.add_argument("--exp",default="base",help="config_exp/ 的实验名")
     args = parser.parse_args()
 
     config = Config(exp_name=args.exp)
