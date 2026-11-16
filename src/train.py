@@ -5,7 +5,7 @@ import torch
 from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
 from utils import Config,load_label_map
-from dataset import NewsDataset, make_collate_fn
+from dataset import NewsDataset
 from model import build_model
 from trainer import Trainer
 
@@ -40,7 +40,7 @@ def main():
     train_dataset = NewsDataset(config.train_path)
     dev_dataset = NewsDataset(config.dev_path)
 
-    collate_fn = make_collate_fn(
+    collate_fn = NewsDataset.make_collate_fn(
         tokenizer=tokenizer,
         label2id=label2id,
         max_length=config["max_length"],

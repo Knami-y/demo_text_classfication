@@ -3,7 +3,7 @@ import torch
 from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
 from utils import Config
-from dataset import NewsDataset, make_collate_fn
+from dataset import NewsDataset
 from model import build_model
 
 
@@ -40,7 +40,7 @@ def main():
     if len(test_dataset) == 0:
         raise ValueError("测试集为空")
 
-    collate_fn = make_collate_fn(
+    collate_fn = NewsDataset.make_collate_fn(
         tokenizer=tokenizer,
         label2id=label2id,
         max_length=config["max_length"],

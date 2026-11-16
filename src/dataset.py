@@ -39,18 +39,20 @@ class NewsDataset(Dataset):
 
     def __getitem__(self, index):
         return self.data[index]
+    
+    @staticmethod
+    def make_collate_fn(tokenizer, label2id, max_length):
+        def collate_fn(batch):
+            texts = [item[0] for item in batch]
+            labels = [label2id[item[1]] for item in batch]
+            encoding = tokenizer(
+                texts,
+                padding=True,
+                max_length=max_length,
+                truncation=True,
+                return_tensors="pt",
+            )
+            encoding["labels"] = torch.tensor(labels, dtype=torch.long)
+            return encoding
 
-def make_collate_fn(tokenizer,label2id,max_length):
-    def collate_fn(batch):
-        texts = [item[0] for item in batch]
-        labels = [label2id[item[1]] for item in batch]
-        encoding = tokenizer(
-            texts,
-            padding=True,
-            max_length=max_length,
-            truncation=True,
-            return_tensors="pt",
-        )
-        encoding["labels"] = torch.tensor(labels,dtype=torch.long)
-        return encoding
-    return collate_fn
+        return collate_fn
