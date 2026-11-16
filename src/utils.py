@@ -60,7 +60,7 @@ class Metrics:
         self.id2label = id2label
         self.digits = digits
         self.total = len(y_true)
-        self.labels = sorted(set(y_true)|set(y_pred))
+        self.labels = sorted(self.id2label.keys())
 
         self.tp = {label:0 for label in self.labels}
         self.fn = {label:0 for label in self.labels}
