@@ -4,7 +4,7 @@ from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
 from utils import Config
 from dataset import NewsDataset
-from model import build_model
+from model import BertClassifier
 
 
 def main():
@@ -52,7 +52,7 @@ def main():
         collate_fn=collate_fn
     )
 
-    model = build_model(config,label2id,id2label)
+    model = BertClassifier(config,label2id,id2label)
     model.load_state_dict(checkpoint["model"])
 
     device = "cuda" if torch.cuda.is_available() else (
@@ -64,7 +64,7 @@ def main():
     print(f"实验名称：{args.exp}")
     print(f"测试样本数：{len(test_dataset)}")
     print(f"使用设备：{device}")
-    print(f"加载模型：{config.checkpoint_path}")
+    print(f"加载模型：{checkpoint_path}")
     print(f"最佳 Epoch：{checkpoint['epoch']}")
     print(f"最佳 Dev Acc：{checkpoint['dev_acc'] * 100:.2f}%")
 

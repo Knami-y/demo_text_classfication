@@ -63,7 +63,6 @@ python src/test.py --exp base
 │   ├── utils.py
 │   ├── dataset.py
 │   ├── model.py
-│   ├── trainer.py
 │   ├── train.py
 │   └── test.py
 ├── checkpoints/   # 本地生成，已 gitignore
@@ -72,11 +71,10 @@ python src/test.py --exp base
 
 ## src文件介绍
 
-| 文件 | 作用 |
-| --- | --- |
-| `utils.py` | `Config`、标签映射、P/R/F1 指标 |
+| 文件 | 作用                                |
+| --- |-----------------------------------|
+| `utils.py` | `Config`、标签映射、P/R/F1 指标           |
 | `dataset.py` | `NewsDataset` 和 `make_collate_fn` |
-| `model.py` | `BertClassifier` 和 `build_model` |
-| `trainer.py` | 训练、验证、SwanLab 记录 |
-| `train.py` | 训练入口 |
-| `test.py` | 测试入口 |
+| `model.py` | `BertClassifier` 和 `build_model`  |
+| `train.py` | 训练入口、`Trainer`、验证和swanlab记录|         |
+| `test.py` | 测试入口                              |
