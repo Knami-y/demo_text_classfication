@@ -37,6 +37,3 @@ class BertClassifier(nn.Module):
 
     def gradient_checkpointing_enable(self):
         self.bert.gradient_checkpointing_enable()
-
-def build_model(config,label2id,id2label):
-    return BertClassifier(config,label2id,id2label)
